@@ -47,9 +47,18 @@
             BlueprintIdentifier = "741469AD1F9E37F600A1B130"
             BuildableName = "FirstCourseFinalTask"
             BlueprintName = "FirstCourseFinalTask"
-            ReferencedContainer = "container:FirstCourseFinalTask.xcodeproj">
+            ReferencedContainer = "container:FirstCourseFinalTask&#xa0;.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "741469AD1F9E37F600A1B130"
+            BuildableName = "FirstCourseFinalTask"
+            BlueprintName = "FirstCourseFinalTask"
+            ReferencedContainer = "container:FirstCourseFinalTask.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
