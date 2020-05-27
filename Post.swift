@@ -8,7 +8,7 @@
 
 import Foundation
 import FirstCourseFinalTaskChecker
-
+//MARK: - Class Post
 struct Post: PostProtocol {
     
     var id: Identifier

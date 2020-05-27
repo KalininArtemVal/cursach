@@ -9,25 +9,25 @@ import Foundation
 import FirstCourseFinalTaskChecker
 
 
-
-   /// Инициализатор хранилища. Принимает на вход массив пользователей, массив подписок в
-   /// виде кортежей в котором первый элемент это ID, а второй - ID пользователя на которого он
-   /// должен быть подписан и ID текущего пользователя.
-   /// Инициализация может завершится с ошибкой если пользователя с переданным ID
-   /// нет среди пользователей в массиве users.
+//MARK: - Инициализатор хранилища Юзера
+/// Инициализатор хранилища. Принимает на вход массив пользователей, массив подписок в
+/// виде кортежей в котором первый элемент это ID, а второй - ID пользователя на которого он
+/// должен быть подписан и ID текущего пользователя.
+/// Инициализация может завершится с ошибкой если пользователя с переданным ID
+/// нет среди пользователей в массиве users.
 
 class UserStorageClass: UsersStorageProtocol {
-   
+    
     var count: Int {
         get { return users.count }
         set {}
     }
     
     var users = [UserInitialData]()
-    var followers: [(User.Identifier, User.Identifier)]
+    var followers: [(User.Identifier, User.Identifier)] // (Пользователь, подписка)
     private var currentUserID: GenericIdentifier<UserProtocol>
     private let currentUserData: UserInitialData
-      
+    
     required init?(
         users: [UserInitialData],
         followers: [(GenericIdentifier<UserProtocol>, GenericIdentifier<UserProtocol>)],
@@ -41,54 +41,57 @@ class UserStorageClass: UsersStorageProtocol {
         self.currentUserID = currentUserID
         self.currentUserData = currentUserData
     }
-
-
+    
+    // MARK: - Current User
     /// Возвращает текущего пользователя
     func currentUser() -> UserProtocol {
-        return User(
-            id: currentUserID,
-            username: currentUserData.username,
-            fullName: currentUserData.fullName,
-            avatarURL: currentUserData.avatarURL,
-            /// Свойство, отображающее подписан ли текущий пользователь на этого пользователя
-            currentUserFollowsThisUser: follow(currentUserID),//(usersFollowedByUser(with: currentUserID) != nil), // он подписан
-            /// Свойство, отображающее подписан ли этот пользователь на текущего пользователя
-            currentUserIsFollowedByThisUser: (usersFollowingUser(with: currentUserID) != nil), // подписчики
-            followsCount: usersFollowedByUser(with: currentUserID)?.count ?? 0,//количестов подписок
-            followedByCount: usersFollowingUser(with: currentUserID)?.count ?? 0 // Количество подписчиков
-        )
+        return User(id: currentUserID,
+                    username: currentUserData.username,
+                    fullName: currentUserData.fullName,
+                    avatarURL: currentUserData.avatarURL,
+                    /// Свойство, отображающее подписан ли текущий пользователь на этого пользователя
+            currentUserFollowsThisUser: follow(currentUserID),
+            /// Свойство, отображающее подписан ли этот пользователь на текущего пользователя. Подписчики
+            currentUserIsFollowedByThisUser: (usersFollowedByUser(with: currentUserID) != nil),
+            //количестов подписок
+            followsCount: usersFollowingUser(with: currentUserID)?.count ?? 0,
+            // Количество подписчиков
+            followedByCount: usersFollowedByUser(with: currentUserID)?.count ?? 0)
     }
-
-
+    
+    
+    
+    // MARK: - User
     /// Возвращает пользователя с переданным ID.
     ///
     /// - Parameter userID: ID пользователя которого нужно вернуть.
     /// - Returns: Пользователь если он был найден.
     /// nil если такого пользователя нет в хранилище.
-    
     func user(with userID: GenericIdentifier<UserProtocol>) -> UserProtocol? {
-        var searchingUser = currentUser()
+        var arrayOfSearchingUser = [UserProtocol]()
         for user in users {
-//            let user = user
             if user.id == userID {
-            let someUser = User(
-                id: userID,
-                username: user.username,
-                fullName: user.fullName,
-                avatarURL: user.avatarURL,
-                currentUserFollowsThisUser: (usersFollowedByUser(with: userID) != nil),
-                currentUserIsFollowedByThisUser:  (usersFollowingUser(with: userID) != nil),
-                followsCount: usersFollowedByUser(with: userID)?.count ?? 0,
-                followedByCount: usersFollowingUser(with: userID)?.count ?? 0
-            )
-                searchingUser = someUser
+                let someUser = User(
+                    id: userID,
+                    username: user.username,
+                    fullName: user.fullName,
+                    avatarURL: user.avatarURL,
+                    currentUserFollowsThisUser: follow(userID),
+                    currentUserIsFollowedByThisUser: (usersFollowedByUser(with: userID) != nil),
+                    followsCount: usersFollowingUser(with: userID)?.count ?? 0,
+                    followedByCount: usersFollowedByUser(with: userID)?.count ?? 0
+                )
+                
+                arrayOfSearchingUser.append(someUser)
             } else {
                 return nil
             }
         }
+        let searchingUser = arrayOfSearchingUser.first
         return searchingUser
     }
-    //-------------------
+    
+    // MARK: - FindUsers.
     
     /// Возвращает всех пользователей, содержащих переданную строку.
     ///
@@ -98,15 +101,19 @@ class UserStorageClass: UsersStorageProtocol {
         var ArrayOfFindingUsers = [UserProtocol]()
         for u in users {
             if u.username == searchString {
-                let searchingUser = user(with: u.id)
-                ArrayOfFindingUsers.append(searchingUser!)
+                if let searchingUser = user(with: u.id) {
+                    ArrayOfFindingUsers.append(searchingUser)
+                } else {
+                    return []
+                }
             }
         }
         return ArrayOfFindingUsers
     }
-
-    /// Добавляет текущего пользователя в подписчики.
-    ///
+    
+    // MARK: - Follow
+    
+    ///Добавляет текущего пользователя в подписчики.
     /// - Parameter userIDToFollow: ID пользователя на которого должен подписаться текущий пользователь.
     /// - Returns: true если текущий пользователь стал подписчиком пользователя с переданным ID
     /// или уже являлся им.
@@ -122,8 +129,9 @@ class UserStorageClass: UsersStorageProtocol {
         }
         return isFollow
     }
-
-
+    
+    //MARK: - UnFollow. Отписка
+    
     func unfollow(_ userIDToUnfollow: GenericIdentifier<UserProtocol>) -> Bool {
         var isFollow: Bool = true
         for folower in followers {
@@ -138,6 +146,8 @@ class UserStorageClass: UsersStorageProtocol {
         return isFollow
     }
     
+    //MARK: - usersFollowingUser. Подписчики.
+    
     /// Возвращает всех подписчиков пользователя.
     ///
     /// - Parameter userID: ID пользователя подписчиков которого нужно вернуть.
@@ -145,26 +155,27 @@ class UserStorageClass: UsersStorageProtocol {
     /// Пустой массив если на пользователя никто не подписан.
     /// nil если такого пользователя нет.
     
-    //подписчики
     func usersFollowingUser(with userID: GenericIdentifier<UserProtocol>) -> [UserProtocol]? {
         var arrayOfSearchingUsers = [UserProtocol]()
         for follower in followers {
-            for someUser in users {
-                if follower.1 == someUser.id {
-                    if someUser.id == userID {
-                        let searchingUser = user(with: someUser.id)
-                        arrayOfSearchingUsers.append(searchingUser!)
-                    } else {
-                        return nil
+            for u in users {
+                if u.id == userID {
+                    if u.id == follower.1 {
+                        if let searchingUser = user(with: follower.0) {
+                            arrayOfSearchingUsers.append(searchingUser)
+                        } else {
+                            return []
+                        }
                     }
-                } else if arrayOfSearchingUsers.isEmpty {
-                    return arrayOfSearchingUsers
+                } else {
+                    return []
                 }
             }
         }
         return arrayOfSearchingUsers
     }
     
+    //MARK: - usersFollowedByUser он подписчик
     
     /// Возвращает все подписки пользователя.
     ///
@@ -173,19 +184,21 @@ class UserStorageClass: UsersStorageProtocol {
     /// Пустой массив если он ни на кого не подписан.
     /// nil если такого пользователя нет.
     
-    
     //он подписчик
     func usersFollowedByUser(with userID: GenericIdentifier<UserProtocol>) -> [UserProtocol]? {
+        // (Пользователь, подписка)
         var arrayOfSearchingUsers = [UserProtocol]()
-        
         for follower in followers {
-            for user in users {
-                if user.id == follower.1 {
-                    let followUser = user as? UserProtocol
-                    arrayOfSearchingUsers.append(followUser!)
-                } else if arrayOfSearchingUsers.isEmpty {
-                    return arrayOfSearchingUsers
-                } else if user.id != follower.1 {
+            for u in users {
+                if u.id == userID {
+                    if u.id == follower.0 {
+                        if let searchingUser = user(with: follower.1) {
+                            arrayOfSearchingUsers.append(searchingUser)
+                        } else {
+                            return []
+                        }
+                    }
+                } else {
                     return nil
                 }
             }
@@ -194,11 +207,14 @@ class UserStorageClass: UsersStorageProtocol {
     }
 }
 
+//MARK: - class PostsStorageClass
+
+/// Инициализатор хранилища. Принимает на вход массив публикаций, массив лайков в виде
+/// кортежей в котором первый - это ID пользователя, поставившего лайк, а второй - ID публикации
+/// на которой должен стоять этот лайк и ID текущего пользователя.
 
 class PostsStorageClass: PostsStorageProtocol {
-    /// Инициализатор хранилища. Принимает на вход массив публикаций, массив лайков в виде
-    /// кортежей в котором первый - это ID пользователя, поставившего лайк, а второй - ID публикации
-    /// на которой должен стоять этот лайк и ID текущего пользователя.
+    
     
     var posts: [PostInitialData]
     
@@ -209,45 +225,45 @@ class PostsStorageClass: PostsStorageProtocol {
     
     required init(posts: [PostInitialData], likes: [(GenericIdentifier<UserProtocol>, GenericIdentifier<PostProtocol>)], currentUserID: GenericIdentifier<UserProtocol>) {
         
-
+        
         self.posts = posts
         self.likes = likes
         self.currentUserID = currentUserID
     }
-    
-
-    
     
     var count: Int {
         get { return posts.count }
         set {}
     }
     
+    //MARK: - POST
     /// Возвращает публикацию с переданным ID.
     ///
     /// - Parameter postID: ID публикации которую нужно вернуть.
     /// - Returns: Публикация если она была найдена.
     /// nil если такой публикации нет в хранилище.
+    
     func post(with postID: GenericIdentifier<PostProtocol>) -> PostProtocol? {
         var arrayOfSearchingPosts = [PostProtocol]()
         for post in posts {
             if post.id == postID {
-                let searchingPost = Post(id: postID,
-                            author: post.author,
-                            description: post.description,
-                            imageURL: post.imageURL,
-                            createdTime: post.createdTime,
-                            currentUserLikesThisPost: likePost(with: postID),
-                            likedByCount: usersLikedPost(with: postID)?.count ?? 0)
+                let searchingPost = Post(id: post.id,
+                                         author: post.author,
+                                         description: post.description,
+                                         imageURL: post.imageURL,
+                                         createdTime: post.createdTime,
+                                         currentUserLikesThisPost: likePost(with: post.id),
+                                         likedByCount: usersLikedPost(with: post.id)?.count ?? 0)
                 arrayOfSearchingPosts.append(searchingPost)
             } else {
                 return nil
             }
-        }
-        let takePost = arrayOfSearchingPosts[0]
+        } 
+        let takePost = arrayOfSearchingPosts.first
         return takePost
     }
     
+    //MARK: - findPosts
     /// Возвращает все публикации пользователя с переданным ID.
     ///
     /// - Parameter authorID: ID пользователя публикации которого нужно вернуть.
@@ -255,37 +271,35 @@ class PostsStorageClass: PostsStorageProtocol {
     /// Пустой массив если пользователь еще ничего не опубликовал.
     func findPosts(by authorID: GenericIdentifier<UserProtocol>) -> [PostProtocol] {
         var arrayOfPosts = [PostProtocol]()
-        for post in posts {
-            if post.author == authorID {
-                let searchingPost = Post(id: post.id,
-                                         author: post.author,
-                                         description: post.description,
-                                         imageURL: post.imageURL,
-                                         createdTime: post.createdTime,
-                                         currentUserLikesThisPost: (usersLikedPost(with: post.id) != nil),
-                                         likedByCount: (usersLikedPost(with: post.id)?.count)!)
-                arrayOfPosts.append(searchingPost)
-                return arrayOfPosts
-            } else {
-                return arrayOfPosts
+        for p in posts {
+            if p.author == authorID {
+                if let searchingPost = post(with: p.id) {
+                    arrayOfPosts.append(searchingPost)
+                } else {
+                    return arrayOfPosts
+                }
             }
         }
         return arrayOfPosts
     }
     
     
-    /// Возвращает все публикации пользователя с переданным ID.
+    //MARK: - findPosts
+    /// Возвращает все публикации, содержащие переданную строку.
     ///
-    /// - Parameter authorID: ID пользователя публикации которого нужно вернуть.
+    /// - Parameter searchString: Строка для поиска.
     /// - Returns: Массив публикаций.
-    /// Пустой массив если пользователь еще ничего не опубликовал.
+    /// Пустой массив если нет таких публикаций.
     func findPosts(by searchString: String) -> [PostProtocol] {
         var arrayOfThePosts = [PostProtocol]()
         
         for p in posts {
             if p.description == searchString {
-                let searchingPost = post(with: p.id)
-                arrayOfThePosts.append(searchingPost!)
+                if let searchingPost = post(with: p.id) {
+                    arrayOfThePosts.append(searchingPost)
+                } else {
+                    return []
+                }
             } else {
                 return arrayOfThePosts
             }
@@ -293,6 +307,7 @@ class PostsStorageClass: PostsStorageProtocol {
         return arrayOfThePosts
     }
     
+    //MARK: - likePost
     /// Ставит лайк от текущего пользователя на публикацию с переданным ID.
     ///
     /// - Parameter postID: ID публикации на которую нужно поставить лайк.
@@ -316,6 +331,7 @@ class PostsStorageClass: PostsStorageProtocol {
         return isLiked
     }
     
+    //MARK: - unlikePost
     /// Удаляет лайк текущего пользователя у публикации с переданным ID.
     ///
     /// - Parameter postID: ID публикации у которой нужно удалить лайк.
@@ -339,6 +355,7 @@ class PostsStorageClass: PostsStorageProtocol {
         return isLiked
     }
     
+    //MARK: - usersLikedPost
     /// Возвращает ID пользователей поставивших лайк на публикацию.
     ///
     /// - Parameter postID: ID публикации лайки на которой нужно искать.
@@ -360,7 +377,7 @@ class PostsStorageClass: PostsStorageProtocol {
     }
 }
 
-
+//MARK: - Проверка
 let userStorageClass = UserStorageClass.self
 let postsStorageClass = PostsStorageClass.self
 

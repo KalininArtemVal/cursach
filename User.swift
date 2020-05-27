@@ -9,7 +9,7 @@
 import Foundation
 import FirstCourseFinalTaskChecker
 
-/// модель, описывающая Юзера
+//MARK: - Class User
 struct User: UserProtocol {
     
   let id: Self.Identifier
