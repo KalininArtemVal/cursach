@@ -9,7 +9,7 @@ import Foundation
 import FirstCourseFinalTaskChecker
 
 
-//MARK: - Инициализатор хранилища Юзера
+//MARK: - class UserStorageClass
 /// Инициализатор хранилища. Принимает на вход массив пользователей, массив подписок в
 /// виде кортежей в котором первый элемент это ID, а второй - ID пользователя на которого он
 /// должен быть подписан и ID текущего пользователя.
@@ -51,15 +51,15 @@ class UserStorageClass: UsersStorageProtocol {
                     avatarURL: currentUserData.avatarURL,
                     /// Свойство, отображающее подписан ли текущий пользователь на этого пользователя
             currentUserFollowsThisUser: follow(currentUserID),
-            /// Свойство, отображающее подписан ли этот пользователь на текущего пользователя. Подписчики
-            currentUserIsFollowedByThisUser: (usersFollowedByUser(with: currentUserID) != nil),
+            /// Свойство, отображающее подписан ли пользователь на текущего пользователя. Подписчики
+            currentUserIsFollowedByThisUser: (usersFollowingUser(with: currentUserID) != nil),
             //количестов подписок
-            followsCount: usersFollowingUser(with: currentUserID)?.count ?? 0,
+            followsCount: usersFollowedByUser(with: currentUserID)?.count ?? 0,
             // Количество подписчиков
-            followedByCount: usersFollowedByUser(with: currentUserID)?.count ?? 0)
+            followedByCount: usersFollowingUser(with: currentUserID)?.count ?? 0)
     }
     
-    
+
     
     // MARK: - User
     /// Возвращает пользователя с переданным ID.
@@ -81,8 +81,8 @@ class UserStorageClass: UsersStorageProtocol {
                     followsCount: usersFollowingUser(with: userID)?.count ?? 0,
                     followedByCount: usersFollowedByUser(with: userID)?.count ?? 0
                 )
-                
-                arrayOfSearchingUser.append(someUser)
+                return someUser
+               // arrayOfSearchingUser.append(someUser)
             } else {
                 return nil
             }
@@ -244,23 +244,25 @@ class PostsStorageClass: PostsStorageProtocol {
     /// nil если такой публикации нет в хранилище.
     
     func post(with postID: GenericIdentifier<PostProtocol>) -> PostProtocol? {
-        var arrayOfSearchingPosts = [PostProtocol]()
+ //       var arrayOfSearchingPosts = [PostProtocol]()
         for post in posts {
             if post.id == postID {
-                let searchingPost = Post(id: post.id,
-                                         author: post.author,
-                                         description: post.description,
-                                         imageURL: post.imageURL,
-                                         createdTime: post.createdTime,
-                                         currentUserLikesThisPost: likePost(with: post.id),
-                                         likedByCount: usersLikedPost(with: post.id)?.count ?? 0)
-                arrayOfSearchingPosts.append(searchingPost)
-            } else {
+                return Post(id: postID,
+                            author: post.author,
+                            description: post.description,
+                            imageURL: post.imageURL,
+                            createdTime: post.createdTime,
+                            currentUserLikesThisPost: likePost(with: postID),
+                            likedByCount: usersLikedPost(with: postID)?.count ?? 0)
+                //let searchingPost =
+                //arrayOfSearchingPosts.append(searchingPost)
+        
+            } else if post.id != postID {
                 return nil
             }
-        } 
-        let takePost = arrayOfSearchingPosts.first
-        return takePost
+        }
+        //let takePost = arrayOfSearchingPosts.first
+        return nil
     }
     
     //MARK: - findPosts
