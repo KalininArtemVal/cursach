@@ -12,13 +12,13 @@ import FirstCourseFinalTaskChecker
 //MARK: - Class User
 struct User: UserProtocol {
     
-  let id: Self.Identifier
+  var id: Self.Identifier
     
-  let username: String
+  var username: String
     
-  let fullName: String
+  var fullName: String
     
-  let avatarURL: URL?
+  var avatarURL: URL?
     
   var currentUserFollowsThisUser: Bool
     
