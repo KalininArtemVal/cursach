@@ -50,14 +50,12 @@ class UserStorageClass: UsersStorageProtocol {
                                username: currentUserData.username,
                                fullName: currentUserData.fullName,
                                avatarURL: currentUserData.avatarURL,
-                               currentUserFollowsThisUser: follow(currentUserID),
+                               currentUserFollowsThisUser: false,
                                currentUserIsFollowedByThisUser: false,
                                followsCount: 0,
                                followedByCount: 0)
+        
 //        for user in users where user.id == currentUserID {
-//            currentUser.id = user.id
-//            currentUser.username = user.username
-//            currentUser.avatarURL = user.avatarURL
 //            currentUser.currentUserFollowsThisUser = follow(user.id)
 //        }
         for follower in followers {
@@ -80,18 +78,25 @@ class UserStorageClass: UsersStorageProtocol {
     /// nil если такого пользователя нет в хранилище.
     func user(with userID: GenericIdentifier<UserProtocol>) -> UserProtocol? {
         
-        for user in users {
-            if user.id == userID {
-                var someUser = User(id: user.id,
+        for user in users where userID == user.id {
+            
+                var someUser = User(id: userID,
                                     username: user.username,
                                     fullName: user.fullName,
                                     avatarURL: user.avatarURL,
-                                    currentUserFollowsThisUser: follow(user.id),
+                                    currentUserFollowsThisUser: false,
                                     currentUserIsFollowedByThisUser: false,
                                     followsCount: 0,
                                     followedByCount: 0)
             
-                
+            for user in users where user.id == someUser.id {
+                if currentUser().currentUserFollowsThisUser == true {
+                    someUser.currentUserFollowsThisUser = false
+                } else {
+                    someUser.currentUserFollowsThisUser = true
+                }
+            }
+            
                 for follower in followers {
                     if follower.0 == someUser.id {
                         someUser.followsCount += 1
@@ -100,11 +105,9 @@ class UserStorageClass: UsersStorageProtocol {
                     }
                 }
                 return someUser
-            } else if user.id != userID {
-                return nil
-            }
         }
         return nil
+
     }
     
     // MARK: - FindUsers.
@@ -135,32 +138,20 @@ class UserStorageClass: UsersStorageProtocol {
     /// или уже являлся им.
     /// false в случае если в хранилище нет пользователя с переданным ID.
     func follow(_ userIDToFollow: GenericIdentifier<UserProtocol>) -> Bool {
-        var isFollow: Bool = true
-        for follower in followers {
-            if follower.1 == userIDToFollow {
-                isFollow = true
-            } else {
-                isFollow = false
-            }
+        for follower in followers where follower.1 == userIDToFollow {
+            return true
         }
-        return isFollow
+        return false
     }
     
     //MARK: - UnFollow. Отписка
     
     func unfollow(_ userIDToUnfollow: GenericIdentifier<UserProtocol>) -> Bool {
-        var isFollow: Bool = true
-        for folower in followers {
-            if folower.1 != userIDToUnfollow {
-                isFollow = false
-                return isFollow
-            } else {
-                isFollow = true
+        for follower in followers where follower.1 != userIDToUnfollow {
                 return true
             }
+            return false
         }
-        return isFollow
-    }
     
     //MARK: - usersFollowingUser. Подписчики.
     
@@ -173,23 +164,32 @@ class UserStorageClass: UsersStorageProtocol {
     
     func usersFollowingUser(with userID: GenericIdentifier<UserProtocol>) -> [UserProtocol]? {
         var arrayOfSearchingUsers = [UserProtocol]()
-        for follower in followers {
-            for u in users {
-                if u.id == userID {
-                    if u.id == follower.1 {
-                        if let searchingUser = user(with: follower.0) {
-                            arrayOfSearchingUsers.append(searchingUser)
-                        } else {
-                            return []
-                        }
-                    }
-                } else {
-                    return []
+        for u in users where u.id == userID {
+            for follower in followers where u.id == follower.1 {
+                if let searchingUser = user(with: follower.0) {
+                    arrayOfSearchingUsers.append(searchingUser)
                 }
             }
         }
         return arrayOfSearchingUsers
     }
+//        for follower in followers {
+//            for u in users {
+//                if u.id == userID {
+//                    if u.id == follower.1 {
+//                        if let searchingUser = user(with: follower.0) {
+//                            arrayOfSearchingUsers.append(searchingUser)
+//                        } else {
+//                            return []
+//                        }
+//                    }
+//                } else {
+//                    return []
+//                }
+//            }
+//        }
+//        return arrayOfSearchingUsers
+//    }
     
     //MARK: - usersFollowedByUser он подписчик
     
@@ -261,27 +261,30 @@ class PostsStorageClass: PostsStorageProtocol {
     
     func post(with postID: GenericIdentifier<PostProtocol>) -> PostProtocol? {
         
-        for post in posts {
-
-            if post.id == postID {
+        for post in posts where post.id == postID {
 
                 var searchingPost = Post(id: post.id,
                             author: post.author,
                             description: post.description,
                             imageURL: post.imageURL,
                             createdTime: post.createdTime,
-                            currentUserLikesThisPost: likePost(with: post.id),
+                            currentUserLikesThisPost: true,
                             likedByCount: 0)
-                //(пользователь, публикация)
-                for like in likes {
-                    if like.1 == searchingPost.id {
-                        searchingPost.likedByCount += 1
+            
+            for post in posts where post.id == postID {
+                for like in likes where post.id == like.1 {
+                    if currentUserID == like.0 {
+                        searchingPost.currentUserLikesThisPost = true
+                    } else {
+                        searchingPost.currentUserLikesThisPost = false
                     }
                 }
-             return searchingPost
-            } else if post.id != postID {
-                return nil
             }
+                //(пользователь, публикация)
+                for like in likes where like.1 == searchingPost.id {
+                        searchingPost.likedByCount += 1
+                }
+             return searchingPost
         }
         return nil
     }
@@ -294,13 +297,9 @@ class PostsStorageClass: PostsStorageProtocol {
     /// Пустой массив если пользователь еще ничего не опубликовал.
     func findPosts(by authorID: GenericIdentifier<UserProtocol>) -> [PostProtocol] {
         var arrayOfPosts = [PostProtocol]()
-        for p in posts {
-            if p.author == authorID {
-                if let searchingPost = post(with: p.id) {
-                    arrayOfPosts.append(searchingPost)
-                } else {
-                    return arrayOfPosts
-                }
+        for p in posts where p.author == authorID {
+            if let searchingPost = post(with: p.id) {
+                arrayOfPosts.append(searchingPost)
             }
         }
         return arrayOfPosts
@@ -316,15 +315,9 @@ class PostsStorageClass: PostsStorageProtocol {
     func findPosts(by searchString: String) -> [PostProtocol] {
         var arrayOfThePosts = [PostProtocol]()
         
-        for p in posts {
-            if p.description == searchString {
-                if let searchingPost = post(with: p.id) {
-                    arrayOfThePosts.append(searchingPost)
-                } else {
-                    return []
-                }
-            } else {
-                return arrayOfThePosts
+        for p in posts where p.description == searchString {
+            if let searchingPost = post(with: p.id) {
+                arrayOfThePosts.append(searchingPost)
             }
         }
         return arrayOfThePosts
@@ -338,21 +331,14 @@ class PostsStorageClass: PostsStorageProtocol {
     /// на эту публикацию.
     /// false в случае если такой публикации нет.
     func likePost(with postID: GenericIdentifier<PostProtocol>) -> Bool {
-        var isLiked: Bool = true
-        for like in likes {
-            for post in posts {
-                if post.id == like.1 {
-                    let correctPost = post
-                    if correctPost.id == postID {
-                        isLiked = true
-                    } else {
-                        isLiked = false
-                    }
-                }
+        for post in posts where post.id == postID {
+            for like in likes where post.id == like.1 {
+                    return true
             }
         }
-        return isLiked
+        return false
     }
+
     
     //MARK: - unlikePost
     /// Удаляет лайк текущего пользователя у публикации с переданным ID.
