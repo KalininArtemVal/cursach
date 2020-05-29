@@ -55,9 +55,15 @@ class UserStorageClass: UsersStorageProtocol {
                                followsCount: 0,
                                followedByCount: 0)
         
-//        for user in users where user.id == currentUserID {
-//            currentUser.currentUserFollowsThisUser = follow(user.id)
-//        }
+        for follower in followers where currentUser.id == follower.0 {
+            if currentUser.currentUserFollowsThisUser == true {
+                currentUser.currentUserFollowsThisUser = false
+            } else {
+                currentUser.currentUserFollowsThisUser = true
+            }
+        }
+        
+        
         for follower in followers {
             if follower.0 == currentUserID {
                 currentUser.followsCount += 1
@@ -77,9 +83,7 @@ class UserStorageClass: UsersStorageProtocol {
     /// - Returns: Пользователь если он был найден.
     /// nil если такого пользователя нет в хранилище.
     func user(with userID: GenericIdentifier<UserProtocol>) -> UserProtocol? {
-        
         for user in users where userID == user.id {
-            
                 var someUser = User(id: userID,
                                     username: user.username,
                                     fullName: user.fullName,
@@ -88,15 +92,28 @@ class UserStorageClass: UsersStorageProtocol {
                                     currentUserIsFollowedByThisUser: false,
                                     followsCount: 0,
                                     followedByCount: 0)
-            
-            for user in users where user.id == someUser.id {
-                if currentUser().currentUserFollowsThisUser == true {
+            // (Пользователь, подписка)
+            //если текущий пользователь на него не подписан.
+            for follower in followers where someUser.id == follower.0 {
+                if someUser.currentUserFollowsThisUser == true {
                     someUser.currentUserFollowsThisUser = false
                 } else {
                     someUser.currentUserFollowsThisUser = true
                 }
             }
+     //должен возвращать пользователя с followsCount равным нулю если это пользователь ни на кого не подписан.
+
             
+            
+            
+            for follower in followers where someUser.id == follower.1 {
+                if someUser.currentUserIsFollowedByThisUser == true {
+                    someUser.currentUserIsFollowedByThisUser = false
+                } else {
+                    someUser.currentUserIsFollowedByThisUser = true
+                }
+            }
+            //Текущий пользователь должен иметь followsCount с учетом позже добавленных подписок через follow()
                 for follower in followers {
                     if follower.0 == someUser.id {
                         someUser.followsCount += 1
@@ -107,7 +124,6 @@ class UserStorageClass: UsersStorageProtocol {
                 return someUser
         }
         return nil
-
     }
     
     // MARK: - FindUsers.
@@ -268,22 +284,28 @@ class PostsStorageClass: PostsStorageProtocol {
                             description: post.description,
                             imageURL: post.imageURL,
                             createdTime: post.createdTime,
-                            currentUserLikesThisPost: true,
+                            // Свойство, отображающее ставил ли текущий пользователь лайк на эту публикацию
+                            currentUserLikesThisPost: false,
                             likedByCount: 0)
             
-            for post in posts where post.id == postID {
-                for like in likes where post.id == like.1 {
-                    if currentUserID == like.0 {
+            // если текущий пользователь поставил лайк на публикацию с переданным ID
+            
+            for like in likes where like.1 == searchingPost.id && currentUserID == like.0 {
                         searchingPost.currentUserLikesThisPost = true
-                    } else {
-                        searchingPost.currentUserLikesThisPost = false
-                    }
-                }
+                
             }
+//            for like in likes where like.0 != currentUserID {
+//                if likePost(with: searchingPost.id) {
+//                    searchingPost.currentUserLikesThisPost = false
+//                } else {
+//                    searchingPost.currentUserLikesThisPost = true
+//                }
+//            }
+            
                 //(пользователь, публикация)
-                for like in likes where like.1 == searchingPost.id {
-                        searchingPost.likedByCount += 1
-                }
+            for like in likes where like.1 == searchingPost.id {
+                searchingPost.likedByCount += 1
+            }
              return searchingPost
         }
         return nil
@@ -331,13 +353,13 @@ class PostsStorageClass: PostsStorageProtocol {
     /// на эту публикацию.
     /// false в случае если такой публикации нет.
     func likePost(with postID: GenericIdentifier<PostProtocol>) -> Bool {
-        for post in posts where post.id == postID {
-            for like in likes where post.id == like.1 {
-                    return true
-            }
+       
+        for post in posts where postID == post.id {
+            return true
         }
         return false
     }
+    
 
     
     //MARK: - unlikePost
