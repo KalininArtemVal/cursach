@@ -10,11 +10,7 @@ import FirstCourseFinalTaskChecker
 
 
 //MARK: - class UserStorageClass
-/// Инициализатор хранилища. Принимает на вход массив пользователей, массив подписок в
-/// виде кортежей в котором первый элемент это ID, а второй - ID пользователя на которого он
-/// должен быть подписан и ID текущего пользователя.
-/// Инициализация может завершится с ошибкой если пользователя с переданным ID
-/// нет среди пользователей в массиве users.
+
 
 class UserStorageClass: UsersStorageProtocol {
     
@@ -43,7 +39,7 @@ class UserStorageClass: UsersStorageProtocol {
     }
     
     // MARK: - Current User
-    /// Возвращает текущего пользователя
+    
     func currentUser() -> UserProtocol {
         
         var currentUser = User(id: currentUserID,
@@ -63,7 +59,6 @@ class UserStorageClass: UsersStorageProtocol {
             }
         }
         
-        
         for follower in followers {
             if follower.0 == currentUserID {
                 currentUser.followsCount += 1
@@ -74,26 +69,21 @@ class UserStorageClass: UsersStorageProtocol {
         return currentUser
     }
     
-
+    
     
     // MARK: - User
-    /// Возвращает пользователя с переданным ID.
-    ///
-    /// - Parameter userID: ID пользователя которого нужно вернуть.
-    /// - Returns: Пользователь если он был найден.
-    /// nil если такого пользователя нет в хранилище.
+    
     func user(with userID: GenericIdentifier<UserProtocol>) -> UserProtocol? {
         for user in users where userID == user.id {
-                var someUser = User(id: userID,
-                                    username: user.username,
-                                    fullName: user.fullName,
-                                    avatarURL: user.avatarURL,
-                                    currentUserFollowsThisUser: false,
-                                    currentUserIsFollowedByThisUser: false,
-                                    followsCount: 0,
-                                    followedByCount: 0)
-            // (Пользователь, подписка)
-            //если текущий пользователь на него не подписан.
+            var someUser = User(id: userID,
+                                username: user.username,
+                                fullName: user.fullName,
+                                avatarURL: user.avatarURL,
+                                currentUserFollowsThisUser: false,
+                                currentUserIsFollowedByThisUser: false,
+                                followsCount: 0,
+                                followedByCount: 0)
+            
             for follower in followers where someUser.id == follower.0 {
                 if someUser.currentUserFollowsThisUser == true {
                     someUser.currentUserFollowsThisUser = false
@@ -101,10 +91,6 @@ class UserStorageClass: UsersStorageProtocol {
                     someUser.currentUserFollowsThisUser = true
                 }
             }
-     //должен возвращать пользователя с followsCount равным нулю если это пользователь ни на кого не подписан.
-
-            
-            
             
             for follower in followers where someUser.id == follower.1 {
                 if someUser.currentUserIsFollowedByThisUser == true {
@@ -113,25 +99,21 @@ class UserStorageClass: UsersStorageProtocol {
                     someUser.currentUserIsFollowedByThisUser = true
                 }
             }
-            //Текущий пользователь должен иметь followsCount с учетом позже добавленных подписок через follow()
-                for follower in followers {
-                    if follower.0 == someUser.id {
-                        someUser.followsCount += 1
-                    } else if follower.1 == someUser.id {
-                        someUser.followedByCount += 1
-                    }
+            
+            for follower in followers {
+                if follower.0 == someUser.id {
+                    someUser.followsCount += 1
+                } else if follower.1 == someUser.id {
+                    someUser.followedByCount += 1
                 }
-                return someUser
+            }
+            return someUser
         }
         return nil
     }
     
     // MARK: - FindUsers.
     
-    /// Возвращает всех пользователей, содержащих переданную строку.
-    ///
-    /// - Parameter searchString: Строка для поиска.
-    /// - Returns: Массив пользователей. Если не нашлось ни одного пользователя, то пустой массив.
     func findUsers(by searchString: String) -> [UserProtocol] {
         var ArrayOfFindingUsers = [UserProtocol]()
         for u in users {
@@ -148,102 +130,78 @@ class UserStorageClass: UsersStorageProtocol {
     
     // MARK: - Follow
     
-    ///Добавляет текущего пользователя в подписчики.
-    /// - Parameter userIDToFollow: ID пользователя на которого должен подписаться текущий пользователь.
-    /// - Returns: true если текущий пользователь стал подписчиком пользователя с переданным ID
-    /// или уже являлся им.
-    /// false в случае если в хранилище нет пользователя с переданным ID.
     func follow(_ userIDToFollow: GenericIdentifier<UserProtocol>) -> Bool {
-        for follower in followers where follower.1 == userIDToFollow {
-            return true
+        for user in users where user.id == userIDToFollow {
+            for follower in followers {
+                if follower.1 == userIDToFollow {
+                    return true
+                } else {
+                    followers.append((follower.0,userIDToFollow))
+                    return true
+                }
+            }
+            return false
         }
         return false
     }
     
+    
+    
+    
     //MARK: - UnFollow. Отписка
     
+    
     func unfollow(_ userIDToUnfollow: GenericIdentifier<UserProtocol>) -> Bool {
-        for follower in followers where follower.1 != userIDToUnfollow {
-                return true
+        for user in users where user.id == userIDToUnfollow {
+            for (index, follower) in followers.enumerated() {
+                if follower.0 == currentUserID {
+                    followers.remove(at: index)
+                    return true
+                } else {
+                    return true
+                }
             }
             return false
         }
+        return false
+    }
+    
     
     //MARK: - usersFollowingUser. Подписчики.
     
-    /// Возвращает всех подписчиков пользователя.
-    ///
-    /// - Parameter userID: ID пользователя подписчиков которого нужно вернуть.
-    /// - Returns: Массив пользователей.
-    /// Пустой массив если на пользователя никто не подписан.
-    /// nil если такого пользователя нет.
-    
     func usersFollowingUser(with userID: GenericIdentifier<UserProtocol>) -> [UserProtocol]? {
         var arrayOfSearchingUsers = [UserProtocol]()
-        for u in users where u.id == userID {
-            for follower in followers where u.id == follower.1 {
-                if let searchingUser = user(with: follower.0) {
+        for us in users where us.id == userID {
+            for follower in followers where follower.1 == userID {
+                if let searchingUser = user(with: follower.0){
                     arrayOfSearchingUsers.append(searchingUser)
                 }
             }
+            return arrayOfSearchingUsers
         }
-        return arrayOfSearchingUsers
+        return nil
     }
-//        for follower in followers {
-//            for u in users {
-//                if u.id == userID {
-//                    if u.id == follower.1 {
-//                        if let searchingUser = user(with: follower.0) {
-//                            arrayOfSearchingUsers.append(searchingUser)
-//                        } else {
-//                            return []
-//                        }
-//                    }
-//                } else {
-//                    return []
-//                }
-//            }
-//        }
-//        return arrayOfSearchingUsers
-//    }
+    
     
     //MARK: - usersFollowedByUser он подписчик
     
-    /// Возвращает все подписки пользователя.
-    ///
-    /// - Parameter userID: ID пользователя подписки которого нужно вернуть.
-    /// - Returns: Массив пользователей.
-    /// Пустой массив если он ни на кого не подписан.
-    /// nil если такого пользователя нет.
     
-    //он подписчик
     func usersFollowedByUser(with userID: GenericIdentifier<UserProtocol>) -> [UserProtocol]? {
-        // (Пользователь, подписка)
         var arrayOfSearchingUsers = [UserProtocol]()
-        for follower in followers {
-            for u in users {
-                if u.id == userID {
-                    if u.id == follower.0 {
-                        if let searchingUser = user(with: follower.1) {
-                            arrayOfSearchingUsers.append(searchingUser)
-                        } else {
-                            return []
-                        }
-                    }
-                } else {
-                    return nil
+        for us in users where us.id == userID {
+            for follower in followers where follower.0 == userID {
+                if let searchingUser = user(with: follower.1){
+                    arrayOfSearchingUsers.append(searchingUser)
                 }
             }
+            return arrayOfSearchingUsers
         }
-        return arrayOfSearchingUsers
+        return nil
     }
 }
 
 //MARK: - class PostsStorageClass
 
-/// Инициализатор хранилища. Принимает на вход массив публикаций, массив лайков в виде
-/// кортежей в котором первый - это ID пользователя, поставившего лайк, а второй - ID публикации
-/// на которой должен стоять этот лайк и ID текущего пользователя.
 
 class PostsStorageClass: PostsStorageProtocol {
     
@@ -278,35 +236,30 @@ class PostsStorageClass: PostsStorageProtocol {
     func post(with postID: GenericIdentifier<PostProtocol>) -> PostProtocol? {
         
         for post in posts where post.id == postID {
-
-                var searchingPost = Post(id: post.id,
-                            author: post.author,
-                            description: post.description,
-                            imageURL: post.imageURL,
-                            createdTime: post.createdTime,
-                            // Свойство, отображающее ставил ли текущий пользователь лайк на эту публикацию
-                            currentUserLikesThisPost: false,
-                            likedByCount: 0)
             
-            // если текущий пользователь поставил лайк на публикацию с переданным ID
+            var searchingPost = Post(id: post.id,
+                                     author: post.author,
+                                     description: post.description,
+                                     imageURL: post.imageURL,
+                                     createdTime: post.createdTime,
+                                     // Свойство, отображающее ставил ли текущий пользователь лайк на эту публикацию
+                currentUserLikesThisPost: false,
+                likedByCount: 0)
             
-            for like in likes where like.1 == searchingPost.id && currentUserID == like.0 {
-                        searchingPost.currentUserLikesThisPost = true
+            
+            
+            for like in likes where like.1 == searchingPost.id && currentUserID == like.0  {
+                searchingPost.currentUserLikesThisPost = true
                 
             }
-//            for like in likes where like.0 != currentUserID {
-//                if likePost(with: searchingPost.id) {
-//                    searchingPost.currentUserLikesThisPost = false
-//                } else {
-//                    searchingPost.currentUserLikesThisPost = true
-//                }
-//            }
             
-                //(пользователь, публикация)
             for like in likes where like.1 == searchingPost.id {
                 searchingPost.likedByCount += 1
             }
-             return searchingPost
+            
+            
+            
+            return searchingPost
         }
         return nil
     }
@@ -353,14 +306,22 @@ class PostsStorageClass: PostsStorageProtocol {
     /// на эту публикацию.
     /// false в случае если такой публикации нет.
     func likePost(with postID: GenericIdentifier<PostProtocol>) -> Bool {
-       
+        
         for post in posts where postID == post.id {
-            return true
+            for like in likes {
+                if like.1 == postID {
+                    return true
+                } else {
+                    return true
+                }
+                
+            }
+            return false
         }
         return false
     }
     
-
+    
     
     //MARK: - unlikePost
     /// Удаляет лайк текущего пользователя у публикации с переданным ID.

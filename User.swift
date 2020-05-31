@@ -26,5 +26,5 @@ struct User: UserProtocol {
     
   var followsCount: Int
     
-  var followedByCount: Int
+    var followedByCount: Int
 }
