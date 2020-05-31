@@ -11,7 +11,6 @@ import FirstCourseFinalTaskChecker
 
 //MARK: - class UserStorageClass
 
-
 class UserStorageClass: UsersStorageProtocol {
     
     var count: Int {
@@ -150,7 +149,6 @@ class UserStorageClass: UsersStorageProtocol {
     
     //MARK: - UnFollow. Отписка
     
-    
     func unfollow(_ userIDToUnfollow: GenericIdentifier<UserProtocol>) -> Bool {
         for user in users where user.id == userIDToUnfollow {
             for (index, follower) in followers.enumerated() {
@@ -185,7 +183,6 @@ class UserStorageClass: UsersStorageProtocol {
     
     //MARK: - usersFollowedByUser он подписчик
     
-    
     func usersFollowedByUser(with userID: GenericIdentifier<UserProtocol>) -> [UserProtocol]? {
         var arrayOfSearchingUsers = [UserProtocol]()
         for us in users where us.id == userID {
@@ -205,16 +202,13 @@ class UserStorageClass: UsersStorageProtocol {
 
 class PostsStorageClass: PostsStorageProtocol {
     
-    
     var posts: [PostInitialData]
-    
     var likes: [(GenericIdentifier<UserProtocol>, GenericIdentifier<PostProtocol>)]
-    
     var currentUserID: GenericIdentifier<UserProtocol>
     
-    
-    required init(posts: [PostInitialData], likes: [(GenericIdentifier<UserProtocol>, GenericIdentifier<PostProtocol>)], currentUserID: GenericIdentifier<UserProtocol>) {
-        
+    required init(posts: [PostInitialData],
+                  likes: [(GenericIdentifier<UserProtocol>, GenericIdentifier<PostProtocol>)],
+                  currentUserID: GenericIdentifier<UserProtocol>) {
         
         self.posts = posts
         self.likes = likes
@@ -227,11 +221,6 @@ class PostsStorageClass: PostsStorageProtocol {
     }
     
     //MARK: - POST
-    /// Возвращает публикацию с переданным ID.
-    ///
-    /// - Parameter postID: ID публикации которую нужно вернуть.
-    /// - Returns: Публикация если она была найдена.
-    /// nil если такой публикации нет в хранилище.
     
     func post(with postID: GenericIdentifier<PostProtocol>) -> PostProtocol? {
         
@@ -242,34 +231,24 @@ class PostsStorageClass: PostsStorageProtocol {
                                      description: post.description,
                                      imageURL: post.imageURL,
                                      createdTime: post.createdTime,
-                                     // Свойство, отображающее ставил ли текущий пользователь лайк на эту публикацию
-                currentUserLikesThisPost: false,
-                likedByCount: 0)
+                                     currentUserLikesThisPost: false,
+                                     likedByCount: 0)
             
-            
-            
-            for like in likes where like.1 == searchingPost.id && currentUserID == like.0  {
-                searchingPost.currentUserLikesThisPost = true
-                
+            for like in likes {
+                if like.1 == searchingPost.id && currentUserID == like.0  {
+                    searchingPost.currentUserLikesThisPost = true
+                }
+                if like.1 == searchingPost.id {
+                    searchingPost.likedByCount += 1
+                }
             }
-            
-            for like in likes where like.1 == searchingPost.id {
-                searchingPost.likedByCount += 1
-            }
-            
-            
-            
             return searchingPost
         }
         return nil
     }
     
     //MARK: - findPosts
-    /// Возвращает все публикации пользователя с переданным ID.
-    ///
-    /// - Parameter authorID: ID пользователя публикации которого нужно вернуть.
-    /// - Returns: Массив публикаций.
-    /// Пустой массив если пользователь еще ничего не опубликовал.
+    
     func findPosts(by authorID: GenericIdentifier<UserProtocol>) -> [PostProtocol] {
         var arrayOfPosts = [PostProtocol]()
         for p in posts where p.author == authorID {
@@ -282,11 +261,7 @@ class PostsStorageClass: PostsStorageProtocol {
     
     
     //MARK: - findPosts
-    /// Возвращает все публикации, содержащие переданную строку.
-    ///
-    /// - Parameter searchString: Строка для поиска.
-    /// - Returns: Массив публикаций.
-    /// Пустой массив если нет таких публикаций.
+    
     func findPosts(by searchString: String) -> [PostProtocol] {
         var arrayOfThePosts = [PostProtocol]()
         
@@ -299,22 +274,17 @@ class PostsStorageClass: PostsStorageProtocol {
     }
     
     //MARK: - likePost
-    /// Ставит лайк от текущего пользователя на публикацию с переданным ID.
-    ///
-    /// - Parameter postID: ID публикации на которую нужно поставить лайк.
-    /// - Returns: true если операция выполнена упешно или пользователь уже поставил лайк
-    /// на эту публикацию.
-    /// false в случае если такой публикации нет.
+    
     func likePost(with postID: GenericIdentifier<PostProtocol>) -> Bool {
         
-        for post in posts where postID == post.id {
+        for post in posts where post.id == postID {
             for like in likes {
-                if like.1 == postID {
+                if like.0 == currentUserID && like.1 == postID {
                     return true
                 } else {
+                    likes.append((currentUserID, postID))
                     return true
                 }
-                
             }
             return false
         }
@@ -324,48 +294,33 @@ class PostsStorageClass: PostsStorageProtocol {
     
     
     //MARK: - unlikePost
-    /// Удаляет лайк текущего пользователя у публикации с переданным ID.
-    ///
-    /// - Parameter postID: ID публикации у которой нужно удалить лайк.
-    /// - Returns: true если операция выполнена успешно или пользователь и так не ставил лайк
-    /// на эту публикацию.
-    /// false в случае если такой публикации нет.
+    
     func unlikePost(with postID: GenericIdentifier<PostProtocol>) -> Bool {
-        var isLiked: Bool = true
-        for like in likes {
-            for post in posts {
-                if post.id == like.1 {
-                    let correctPost = post
-                    if correctPost.id == postID {
-                        isLiked = false
-                    } else {
-                        isLiked = true
-                    }
+        for post in posts where post.id == postID {
+            for (index,like) in likes.enumerated() {
+                if like.0 == currentUserID && like.1 == post.id {
+                    likes.remove(at: index)
                 }
             }
+            return true
         }
-        return isLiked
+        return false
     }
     
+    
     //MARK: - usersLikedPost
-    /// Возвращает ID пользователей поставивших лайк на публикацию.
-    ///
-    /// - Parameter postID: ID публикации лайки на которой нужно искать.
-    /// - Returns: Массив ID пользователей.
-    /// Пустой массив если никто еще не поставил лайк на эту публикацию.
-    /// nil если такой публикации нет в хранилище.
+    
     func usersLikedPost(with postID: GenericIdentifier<PostProtocol>) -> [GenericIdentifier<UserProtocol>]? {
         var arrayOfUsersID = [GenericIdentifier<UserProtocol>]()
-        for like in likes {
-            let userPostID = like.1
-            if userPostID == postID {
-                let userID = like.0
-                arrayOfUsersID.append(userID)
-            } else {
-                return nil
+        for post in posts where post.id == postID {
+            for like in likes {
+                if like.1 == postID {
+                    arrayOfUsersID.append(like.0)
+                }
             }
+            return arrayOfUsersID
         }
-        return arrayOfUsersID
+        return nil
     }
 }
 
